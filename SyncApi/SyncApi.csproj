@@ -108,9 +108,17 @@
   <ItemGroup>
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Compile Include="Controllers\StorageController.cs" />
-    <Compile Include="Controllers\SyncController.cs" />
-    <Compile Include="Data\AzureTableService.cs" />
+    <Compile Include="Helpers\ICustomDeserialize.cs" />
+    <Compile Include="Helpers\ServerCustomDeserialize.cs" />
+    <Compile Include="Models\ISyncItem.cs" />
+    <Compile Include="Data\ServerCUDDataStore.cs" />
+    <Compile Include="Data\DataSyncManager.cs" />
+    <Compile Include="Models\UserArticleStatusEntity.cs" />
+    <Compile Include="SyncEnums\Enums.cs" />
+    <Compile Include="Data\ICUDDataStore.cs" />
+    <Compile Include="Models\ICUDEntity.cs" />
     <Compile Include="Data\RecordIdHelper.cs" />
+    <Compile Include="Data\SqliteCUDDataStore.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>

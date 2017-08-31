@@ -8,10 +8,12 @@ using System.Net;
 using System.Net.Http;
 using System.Web.Http;
 using SyncApi.Models;
+using SyncApi.Helpers;
 using SyncApi.Data;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Text;
+using SyncApi.SyncEnums;
 
 namespace SyncApi.Controllers
 {
@@ -19,10 +21,11 @@ namespace SyncApi.Controllers
     {
         
 
-        //api/[controller]/Get
-        public IEnumerable<UserPreferenceEntity> Get()
+        //api/[controller]/GetAllPreferences
+        public IEnumerable<UserPreferenceEntity> GetAllPreferences()
         {
-            IEnumerable<UserPreferenceEntity> preferenceRecords = AzureTableService.GetPreferences();
+            UserPreferenceEntity preferenceManager = new UserPreferenceEntity();
+            IEnumerable<UserPreferenceEntity> preferenceRecords = (IEnumerable<UserPreferenceEntity>)preferenceManager.GetAll();
 
             return preferenceRecords;
         }
@@ -31,15 +34,16 @@ namespace SyncApi.Controllers
         [HttpPost]
         public IHttpActionResult AddPreference([FromBody]UserPreferenceEntity newPreference)
         {
+            ServerCUDDataStore dataStore = new ServerCUDDataStore();
             try
             {
                 string payload = JsonConvert.SerializeObject(newPreference);
-                AzureTableService.AddPreference(newPreference);
-                AzureTableService.InsertCUDEntity(newPreference.TableName, RecordIdHelper.CreateRecordId(payload), newPreference.CustomerId, payload, "Create", DateTimeOffset.Now);
+                newPreference.Create();
+                dataStore.AddCUDEntity(newPreference.TableName, RecordIdHelper.CreateRecordId(newPreference), newPreference.CustomerId, payload, "Create", DateTimeOffset.Now);
 
                 return Ok("Success!");
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
@@ -49,14 +53,15 @@ namespace SyncApi.Controllers
         [HttpPost]
         public IHttpActionResult DeletePreference([FromBody]UserPreferenceEntity preferenceToDelete)
         {
+            ServerCUDDataStore dataStore = new ServerCUDDataStore();
             try
             {
                 //call azure service delete
                 string payload = JsonConvert.SerializeObject(preferenceToDelete);
-                AzureTableService.DeletePreference(preferenceToDelete);
+                preferenceToDelete.Delete();
 
                 string recordIdCUD = preferenceToDelete.CustomerId + "_" + preferenceToDelete.PreferenceName;
-                AzureTableService.InsertCUDEntity(preferenceToDelete.TableName, recordIdCUD, preferenceToDelete.CustomerId, JsonConvert.SerializeObject(preferenceToDelete), "Delete", DateTimeOffset.Now);
+                dataStore.AddCUDEntity(preferenceToDelete.TableName, recordIdCUD, preferenceToDelete.CustomerId, JsonConvert.SerializeObject(preferenceToDelete), "Delete", DateTimeOffset.Now);
 
                 return Ok();
             }
@@ -70,11 +75,12 @@ namespace SyncApi.Controllers
         [HttpPost]
         public IHttpActionResult UpdatePreference([FromBody]UserPreferenceEntity updatedPreference)
         {
+            ServerCUDDataStore dataStore = new ServerCUDDataStore();
             try
             {
-                AzureTableService.UpdatePreference(updatedPreference);
+                updatedPreference.Update();
                 string recordIdCUD = updatedPreference.CustomerId + "_" + updatedPreference.PreferenceName;
-                AzureTableService.InsertCUDEntity(updatedPreference.TableName, recordIdCUD, updatedPreference.CustomerId, JsonConvert.SerializeObject(updatedPreference), "Update", DateTimeOffset.Now);
+                dataStore.AddCUDEntity(updatedPreference.TableName, recordIdCUD, updatedPreference.CustomerId, JsonConvert.SerializeObject(updatedPreference), "Update", DateTimeOffset.Now);
                 return Ok();
             }
             catch (Exception ex)
@@ -85,9 +91,12 @@ namespace SyncApi.Controllers
 
         //api/[controller]/SyncMobile
         [HttpPost]
-        public IHttpActionResult SyncMobile([FromBody]SyncInfo clientSyncInfo)
+        public async Task<IHttpActionResult> SyncMobile([FromBody]SyncInfo clientSyncInfo)
         {
-            IEnumerable<CUDEntity> clientDirections =  AzureTableService.UpdateServerStorage(clientSyncInfo.ClientOperations, clientSyncInfo.LastSync);
+            ServerCUDDataStore dataStore = new ServerCUDDataStore();
+            DataSyncManager manager = new DataSyncManager(dataStore, new ServerCustomDeserialize(), Enums.DataLocation.Server, DateTimeOffset.Now);
+            await manager.Sync(clientSyncInfo.ClientOperations);
+            IEnumerable<CUDEntity> clientDirections = await dataStore.CUDSinceSync(clientSyncInfo.LastSync);
             //var CUDPayload = await Task.Run(() => JsonConvert.SerializeObject(clientDirections));
             //var httpContent = new StringContent(CUDPayload, Encoding.UTF8, "application/json");
 

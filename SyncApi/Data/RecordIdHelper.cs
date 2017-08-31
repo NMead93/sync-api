@@ -9,11 +9,29 @@ namespace SyncApi.Data
 {
     public class RecordIdHelper
     {
-        public static string CreateRecordId(string payload)
+        public static string CreateRecordId(ISyncItem item)
         {
-            UserPreferenceEntity deserializedPayload = JsonConvert.DeserializeObject<UserPreferenceEntity>(payload);
+            string uniqueTableColumnId = "";
+            string uniqueTableColumnIdValue = "";
 
-            return deserializedPayload.CustomerId + "_" + deserializedPayload.PreferenceName;
+            if (item.TableName == "UserPreference")
+            {
+                UserPreferenceEntity castedItem = (UserPreferenceEntity)item;
+                uniqueTableColumnId = "PreferenceName";
+                uniqueTableColumnIdValue = castedItem.PreferenceName;
+            }
+            else if (item.TableName == "UserArticleStatus")
+            {
+                UserArticleStatusEntity castedItem = (UserArticleStatusEntity)item;
+                uniqueTableColumnId = "ArticleCode";
+                uniqueTableColumnIdValue = castedItem.ArticleCode;
+            }
+            else
+            {
+                //continue on
+            }
+
+            return item.CustomerId + "_" + uniqueTableColumnId + "_" + uniqueTableColumnIdValue;
         }
     }
 }

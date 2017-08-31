@@ -1,9 +1,10 @@
 ﻿using Microsoft.WindowsAzure.Storage.Table;
+using SyncApi.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
-using SyncApi.Data;
+using SyncApi.SyncEnums;
 using Microsoft.WindowsAzure.Storage;
 using System.Net.Http;
 using System.Net;
@@ -12,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace SyncApi.Models
 {
-    public class UserPreferenceEntity : TableEntity, ISyncItem
+    public class UserArticleStatusEntity : TableEntity, ISyncItem
     {
         private static string connectionString = "DefaultEndpointsProtocol=https;AccountName=nicksandbox;AccountKey=NxgXZJdg7NUg8GC4XLXfYAd2d7iYklzOO2jZEIl/PseWumvfXBwtYsYc461SOiz8JQyGYESl3q4+DiqecBETiw==;EndpointSuffix=core.windows.net";
 
@@ -20,28 +21,27 @@ namespace SyncApi.Models
 
         public string CustomerId { get; set; }
 
-        public string PreferenceName { get { return RowKey; } set { RowKey = value; } }
+        public string ArticleCode { get { return RowKey; } set { RowKey = value; } }
 
-        public string PreferenceValue { get; set; }
+        public Enums.ArticleStatus ArticleStatus { get; set; }
 
-        public UserPreferenceEntity() { }
+        public UserArticleStatusEntity() { }
 
-        public UserPreferenceEntity(string customerId, string preferenceName, string preferenceValue)
+        public UserArticleStatusEntity(string userId, string articleCode, Enums.ArticleStatus articleStatus)
         {
-            TableName = "UserPreference";
-            CustomerId = customerId;
-            PreferenceName = preferenceName;
-            PreferenceValue = preferenceValue;
+            TableName = "UserArticleStatus";
+            CustomerId = userId;
+            ArticleCode = articleCode;
+            ArticleStatus = articleStatus;
         }
 
         public async Task Create()
         {
-            
             TableOperation insertOperation = TableOperation.Insert(this);
 
             var account = CloudStorageAccount.Parse(connectionString);
             var tableClient = account.CreateCloudTableClient();
-            CloudTable table = tableClient.GetTableReference("UserPreference");
+            CloudTable table = tableClient.GetTableReference("UserArticleStatus");
 
             try
             {
@@ -55,21 +55,21 @@ namespace SyncApi.Models
 
         public async Task<IEnumerable<ISyncItem>> GetAll()
         {
-            List<UserPreferenceEntity> preferenceRecords = new List<UserPreferenceEntity>();
-            TableQuery<UserPreferenceEntity> query = new TableQuery<UserPreferenceEntity>();
+            List<UserArticleStatusEntity> userArticleStatusRecords = new List<UserArticleStatusEntity>();
+            TableQuery<UserArticleStatusEntity> query = new TableQuery<UserArticleStatusEntity>();
 
             var account = CloudStorageAccount.Parse(connectionString);
             var tableClient = account.CreateCloudTableClient();
-            CloudTable table = tableClient.GetTableReference("UserPreference");
+            CloudTable table = tableClient.GetTableReference("UserArticleStatus");
 
             try
             {
-                foreach (UserPreferenceEntity customer in table.ExecuteQuery(query))
+                foreach (UserArticleStatusEntity userArticle in table.ExecuteQuery(query))
                 {
-                    preferenceRecords.Add(customer);
+                    userArticleStatusRecords.Add(userArticle);
                 }
 
-                return preferenceRecords;
+                return userArticleStatusRecords;
             }
             catch (Exception ex)
             {
@@ -83,16 +83,16 @@ namespace SyncApi.Models
         {
             var account = CloudStorageAccount.Parse(connectionString);
             var tableClient = account.CreateCloudTableClient();
-            CloudTable table = tableClient.GetTableReference("UserPreference");
+            CloudTable table = tableClient.GetTableReference("UserArticleStatus");
 
-            TableOperation retrieveOperation = TableOperation.Retrieve<UserPreferenceEntity>(TableName, PreferenceName);
+            TableOperation retrieveOperation = TableOperation.Retrieve<UserArticleStatusEntity>(TableName, ArticleCode);
             TableResult retrievedResult = table.Execute(retrieveOperation);
-            UserPreferenceEntity retrievedPreference = (UserPreferenceEntity)retrievedResult.Result;
+            UserArticleStatusEntity retrievedArticleStatus = (UserArticleStatusEntity)retrievedResult.Result;
 
-            if (retrievedPreference != null)
+            if (retrievedArticleStatus != null)
             {
-                retrievedPreference.PreferenceValue = PreferenceValue;
-                TableOperation updateOperation = TableOperation.Replace(retrievedPreference);
+                retrievedArticleStatus.ArticleStatus = ArticleStatus;
+                TableOperation updateOperation = TableOperation.Replace(retrievedArticleStatus);
                 await table.ExecuteAsync(updateOperation);
             }
             else
@@ -105,15 +105,15 @@ namespace SyncApi.Models
         {
             var account = CloudStorageAccount.Parse(connectionString);
             var tableClient = account.CreateCloudTableClient();
-            CloudTable table = tableClient.GetTableReference("UserPreference");
+            CloudTable table = tableClient.GetTableReference("UserArticleStatus");
 
-            TableOperation retrieveOperation = TableOperation.Retrieve<UserPreferenceEntity>(TableName, PreferenceName);
+            TableOperation retrieveOperation = TableOperation.Retrieve<UserArticleStatusEntity>(TableName, ArticleCode);
             TableResult retrievedResult = table.Execute(retrieveOperation);
-            UserPreferenceEntity retrievedPreference = (UserPreferenceEntity)retrievedResult.Result;
+            UserArticleStatusEntity retrievedArticleStatus = (UserArticleStatusEntity)retrievedResult.Result;
 
-            if (retrievedPreference != null)
+            if (retrievedArticleStatus != null)
             {
-                TableOperation deleteOperation = TableOperation.Delete(retrievedPreference);
+                TableOperation deleteOperation = TableOperation.Delete(retrievedArticleStatus);
                 await table.ExecuteAsync(deleteOperation);
             }
             else
@@ -124,8 +124,8 @@ namespace SyncApi.Models
 
         public bool IsEqual(ISyncItem otherItem)
         {
-            UserPreferenceEntity castedOtherItem = (UserPreferenceEntity)otherItem;
-            return (PreferenceName == castedOtherItem.PreferenceName) && (PreferenceValue == castedOtherItem.PreferenceValue);
+            UserArticleStatusEntity castedOtherItem = (UserArticleStatusEntity)otherItem;
+            return (ArticleCode == castedOtherItem.ArticleCode) && (ArticleStatus == castedOtherItem.ArticleStatus);
         }
 
         public Task<ISyncItem> FindLatestItemCopy()

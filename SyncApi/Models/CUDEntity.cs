@@ -3,10 +3,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
+using SyncApi.Data;
 
 namespace SyncApi.Models
 {
-    public class CUDEntity : TableEntity
+    public class CUDEntity : TableEntity, ICUDEntity
     {
         public string TableName { get { return PartitionKey; } set { PartitionKey = value; } }
         public string RecordId { get; set; }
